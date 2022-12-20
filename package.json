@@ -6,6 +6,12 @@
     "start": "next start"
   },
   "dependencies": {
+    "@next/font": "^13.0.7",
+    "@svgr/webpack": "^6.5.1",
+    "@thirdweb-dev/react": "^3.6.8",
+    "@thirdweb-dev/sdk": "^3.6.8",
+    "crypto": "^1.0.1",
+    "ethers": "^5.7.2",
     "next": "latest",
     "react": "18.2.0",
     "react-dom": "18.2.0"
