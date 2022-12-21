@@ -1,5 +1,5 @@
 import type { NextPage } from "next";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Head from "next/head";
 
 import AddSVG from "public/add.svg";
@@ -15,8 +15,7 @@ import { useEvents } from "../hooks/useEvents";
 const Home: NextPage = () => {
   const [modalActive, setModalActive] = useState(false);
 
-  const { events: _events, loading } = useEvents();
-  const [events, setEvents] = useState(_events);
+  const { events } = useEvents();
 
   // const { messages: _messages, loading: loading2 } = useMessages();
   // const [messages, setMessages] = useState(_messages);
@@ -35,6 +34,16 @@ const Home: NextPage = () => {
 
   const handleOnModalClose = () => {
     setModalActive(false);
+  };
+
+  const getColor = (index: number): string => {
+    const opts = [
+      "custom-purple",
+      "custom-green",
+      "custom-teal",
+      "custom-blue",
+    ];
+    return opts[index % opts.length];
   };
 
   return (
@@ -58,7 +67,7 @@ const Home: NextPage = () => {
               className="flex-none flex flex-col p-5 rounded items-center space-y-5 justify-center w-[350px] h-[250px] bg-custom-teal"
             >
               <AddSVG className="" />
-              <h3 className="bg-custom-teal/80 font-bold text-lg">
+              <h3 className="bg-custom-teal/80 font-bold text-2xl">
                 Add Message
               </h3>
             </figure>
@@ -70,6 +79,7 @@ const Home: NextPage = () => {
                   messageId="0x1234567890"
                   message="This is a test message"
                   timestamp={167149355 + i}
+                  color={getColor(i)}
                 />
               ))}
           </div>
@@ -78,38 +88,17 @@ const Home: NextPage = () => {
         <section className="flex space-y-10 flex-col xl:flex-row w-full">
           <div className="flex flex-col w-full xl:w-1/2 space-y-5">
             <h1 className="text-4xl text-left text-white font-bold">Events</h1>
-            <div className="flex flex-col w-full space-y-5 overflow-y-auto">
-              <Event
-                event={{
-                  type: "MessageUnlocked",
-                  timestamp: 1671323839,
-                  address: "0x1234567890",
-                }}
-              />
-              <Event
-                event={{
-                  type: "MessageLocked",
-                  timestamp: 1671323839,
-                  messageId: "0x123456789",
-                }}
-              />
-              <Event
-                event={{
-                  type: "FeeUpdated",
-                  timestamp: 1671323839,
-                  oldFee: 1.23,
-                  fee: 2.34,
-                }}
-              />
-              <Event
-                event={{
-                  type: "MinimumLockUpTimeUpdated",
-                  timestamp: 1671323839,
-                  oldTime: 4,
-                  minimumLockUpTime: 5,
-                }}
-              />
-            </div>
+            {events ? (
+              <div className="flex flex-col w-full space-y-5 overflow-y-auto">
+                {events.map((event, i) => (
+                  <Event key={i} event={event} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col w-full space-y-5 overflow-y-auto">
+                <h1 className="text-white">Loading Events...</h1>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col w-full xl:w-1/2 space-y-5">

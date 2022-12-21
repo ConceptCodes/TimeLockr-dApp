@@ -1,62 +1,47 @@
 import { useEffect, useState } from "react";
 import { useSDK } from "@thirdweb-dev/react";
+import { ethers } from "ethers";
 
 export interface IEvent {
-  address?: string | any;
-  messageId?: string | any;
-  oldFee?: number;
-  fee?: number;
-  oldTime?: number;
-  minimumLockUpTime?: number;
-  timestamp: number;
-  type?:
+  _user?: string;
+  _messageId?: string;
+  _oldFee?: number;
+  _fee?: number;
+  _prevLockTime?: number;
+  _lockTime?: number;
+  _timestamp?: number;
+  type:
     | "MessageLocked"
     | "MessageUnlocked"
     | "FeeUpdated"
     | "MinimumLockUpTimeUpdated"
     | "AddedToWhitelist"
     | "RemovedFromWhitelist";
-  isError?: boolean;
-  errorType?:
-    | "InsufficientFunds"
-    | "InvalidLockTime"
-    | "MessageStillLocked"
-    | "EmptyMessage";
-  amount?: number;
-  timeLocked?: number;
 }
 
 export function useEvents() {
   const [events, setEvents] = useState<IEvent[]>();
-  const [loading, setLoading] = useState(true);
 
   const sdk = useSDK();
 
-  const init = async () => {
-    const contract = await sdk?.getContract(
-      process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string
-    );
-
-    contract?.events.getAllEvents().then((events) => {
-      setLoading(false);
-
-      events.forEach((event) => {
-        setEvents((prevState: any) => [
-          ...prevState,
-          {
-            ...event.data,
-            type: event.eventName,
-          },
-        ]);
-      });
-    });
-  };
-
   useEffect(() => {
-    return () => {
-      init();
+    const fetchEvents = async () => {
+      const contract = await sdk?.getContract(
+        process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string
+      );
+      const _events = await contract?.events.getAllEvents();
+      const clean = _events?.map((event) => {
+        return {
+          ...event.data,
+          _timestamp: event.data._timestamp,
+          type: event.eventName,
+        } as IEvent;
+      });
+      setEvents(clean);
     };
+    fetchEvents();
+    return () => {};
   }, []);
 
-  return { events, loading };
+  return { events };
 }

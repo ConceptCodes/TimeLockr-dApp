@@ -18,23 +18,34 @@ const Modal: React.FC<IModalProps> = (props: IModalProps) => {
 
   const [message, setMessage] = React.useState("");
   const [lockUpTime, setLockUpTime] = React.useState(new Date());
-  const [fee, setFee] = React.useState<number | undefined>(undefined);
-  const [loading, setLoading] = React.useState(false);
+  const [fee, setFee] = React.useState<number>();
   const [isDisabled, setIsDisabled] = React.useState(true);
   const [recipient, setRecipient] = React.useState<string | undefined>(address);
+  const [polyPrice, setPolyPrice] = React.useState<number | undefined>(0);
+
+  // React.useEffect(() => {
+  //   if (contract.data) {
+  //     contract.data
+  //       .call("getFee")
+  //       .then((fee) => {
+  //         setFee(fee.toNumber());
+  //       })
+  //       .catch((err) => {
+  //         console.error(err);
+  //       });
+  //   }
+  // }, [contract]);
 
   React.useEffect(() => {
-    if (contract.data) {
-      contract.data
-        .call("getFee")
-        .then((fee) => {
-          setFee(fee.toNumber());
-        })
-        .catch((err) => {
-          console.error(err);
-        });
-    }
-  }, [contract]);
+    fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=polygon&vs_currencies=usd"
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        // console.log({...data})
+        setPolyPrice(data.polygon?.usd);
+      });
+  }, []);
 
   if (!props.active) return;
 
@@ -90,6 +101,7 @@ const Modal: React.FC<IModalProps> = (props: IModalProps) => {
             id="message"
             className="border border-slate-200 bg-slate-200 rounded p-2"
             value={message}
+            maxLength={200}
             onChange={(e) => setMessage(e.target.value)}
           />
         </div>
@@ -101,11 +113,12 @@ const Modal: React.FC<IModalProps> = (props: IModalProps) => {
             <DatePicker
               selected={lockUpTime}
               onChange={(date: Date) => setLockUpTime(date)}
+              showTimeSelect
             />
           </div>
           <div className="flex flex-col space-y-2 w-1/2">
             <label htmlFor="fee" className={labelStyle}>
-              Fee (in ETH)
+              Fee (${polyPrice ? fee * polyPrice : fee})
             </label>
             <input
               id="fee"
@@ -120,6 +133,40 @@ const Modal: React.FC<IModalProps> = (props: IModalProps) => {
     </section>
   );
 
+  const footer = (
+    <div id="footer" className="rounded-b p-3">
+      <Web3Button
+        contractAddress={process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string}
+        action={(contract) => {
+          const encryptedMessage = encryptMessage(message, recipient as string);
+          const lockUpTimeInSeconds = Math.floor(lockUpTime.getTime() / 1000);
+          toast.promise(
+            contract.call("lockMessage", {
+              value: ethers.utils.parseEther(fee?.toString() as string),
+            }),
+            {
+              pending: {
+                render() {
+                  return "Locking up your message...";
+                },
+              },
+              success: {
+                render({ data }) {},
+                icon: "🚀",
+              },
+              error: {
+                render({ data }) {},
+                icon: "🚨",
+              },
+            }
+          );
+        }}
+      >
+        Lock Message
+      </Web3Button>
+    </div>
+  );
+
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden outline-none focus:outline-none">
@@ -127,41 +174,7 @@ const Modal: React.FC<IModalProps> = (props: IModalProps) => {
           <div className="relative flex w-full flex-col space-y-3 rounded-lg border-0 bg-white shadow-lg outline-none focus:outline-none">
             {header}
             {content}
-            <div id="footer" className="rounded-b p-3">
-              <Web3Button
-                contractAddress={
-                  process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string
-                }
-                action={(contract) => {
-                  const encryptedMessage = encryptMessage(message);
-                  const lockUpTimeInSeconds = Math.floor(
-                    lockUpTime.getTime() / 1000
-                  );
-                  toast.promise(
-                    contract.call("lockMessage", {
-                      value: ethers.utils.parseEther(fee.toString()),
-                    }),
-                    {
-                      pending: {
-                        render() {
-                          return "Locking up your message...";
-                        },
-                      },
-                      success: {
-                        render({ data }) {},
-                        icon: "🚀",
-                      },
-                      error: {
-                        render({ data }) {},
-                        icon: "🚨",
-                      },
-                    }
-                  );
-                }}
-              >
-                Send Tip
-              </Web3Button>
-            </div>
+            {footer}
           </div>
         </div>
       </div>

@@ -1,9 +1,12 @@
-import { IEvent } from "../hooks/useEvents";
-import UnlockSVG from "public/unlock.svg";
+import { FC } from "react";
+
+import ArrowSVG from "public/arrow.svg";
 import FeeSVG from "public/fee.svg";
 import LockSVG from "public/lock.svg";
-import ArrowSVG from "public/arrow.svg";
-import { FC } from "react";
+import UnlockSVG from "public/unlock.svg";
+
+import { IEvent } from "../hooks/useEvents";
+import { formatAddress } from "../util";
 
 interface IEventProps {
   event: IEvent;
@@ -11,7 +14,7 @@ interface IEventProps {
 
 const Event: FC<IEventProps> = (props: IEventProps) => {
   const getTime = () => {
-    const date = new Date(props.event.timestamp);
+    const date = new Date(props.event._timestamp);
     const time = date.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "numeric",
@@ -69,7 +72,7 @@ const Event: FC<IEventProps> = (props: IEventProps) => {
         {props.event.type === "MessageUnlocked" && (
           <p className="text-gray-300">
             <span className="text-custom-teal font-bold pr-2">User:</span>
-            {props.event.address}
+            {props.event._user}
           </p>
         )}
         {props.event.type === "MessageLocked" && (
@@ -77,21 +80,21 @@ const Event: FC<IEventProps> = (props: IEventProps) => {
             <span className="text-custom-purple font-bold pr-2">
               Message Id:
             </span>
-            {props.event.messageId}
+            {formatAddress(props.event._messageId)}
           </p>
         )}
         {props.event.type === "FeeUpdated" && (
           <div className="flex items-center text-gray-300">
-            {props.event.oldFee}
+            {props.event._oldFee}
             <ArrowSVG className="fill-custom-green mx-3" />
-            {props.event.fee}
+            {props.event._fee}
           </div>
         )}
         {props.event.type === "MinimumLockUpTimeUpdated" && (
           <div className="flex items-center text-gray-300">
-            {props.event.oldTime} Mins
+            {props.event._prevLockTime} Mins
             <ArrowSVG className="mx-3 fill-custom-blue" />
-            {props.event.minimumLockUpTime} Mins
+            {props.event._lockTime} Mins
           </div>
         )}
       </div>

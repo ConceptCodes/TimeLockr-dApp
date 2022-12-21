@@ -5,7 +5,8 @@ import crypto from "crypto";
  * @param address {string}
  * @returns {string} formatted address
  */
-export function formatAddress(address: string): string {
+export function formatAddress(address?: string): string {
+  if (!address) return "";
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
@@ -69,4 +70,12 @@ export function decryptMessage(
   }
 
   return decrypted;
+}
+
+/**
+ * converts poly to usd
+ * @param amt {number} amount of poly
+ */
+export function polyToUsd(amt: number): number {
+  return amt * 0.01;
 }

@@ -5,6 +5,7 @@ interface IMessageProps {
   messageId: string;
   message: string;
   timestamp: number;
+  color: string;
 }
 
 const Message: FC<IMessageProps> = (props: IMessageProps) => {
@@ -17,21 +18,11 @@ const Message: FC<IMessageProps> = (props: IMessageProps) => {
     return cleanDate;
   };
 
-  const getColor = () => {
-    const opts = [
-      "custom-teal",
-      "custom-purple",
-      "custom-green",
-      "custom-blue",
-    ];
-
-    return opts[Math.floor(Math.random() * opts.length)];
-  }
   return (
     <figure
       className={[
         "flex flex-none flex-col p-5 rounded justify-evenly w-[350px] h-[250px]",
-        "bg-" + getColor(),
+        "bg-" + props.color,
       ].join(" ")}
     >
       <div className="flex flex-row items-center justify-between">
