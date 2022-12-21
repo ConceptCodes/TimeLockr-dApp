@@ -2,6 +2,7 @@ import NotepadSVG from 'public/notepad.svg';
 import { FC } from 'react';
 
 interface IMessageProps {
+  messageId: string;
   message: string;
   timestamp: number;
 }
@@ -37,8 +38,9 @@ const Message: FC<IMessageProps> = (props: IMessageProps) => {
         <NotepadSVG className="" />
         <h3 className="text-black font-bold">{cleanTimestamp()}</h3>
       </div>
-      <p className="text-xl">{props.message}</p>
+      <p className="text-xl truncate">"{props.message}"</p>
       <hr className="border-b-2 border-black" />
+      <p className="text-black font-bold">Message Id: {props.messageId}</p>
     </figure>
   );
 };

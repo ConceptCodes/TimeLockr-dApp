@@ -1,12 +1,26 @@
 import type { NextPage } from "next";
+import { useState } from "react";
 import Head from "next/head";
-import Navbar from "../components/Navbar";
-import Message from "../components/Message";
-import Event from "../components/Event";
-import Progress from "../components/Progress";
+
 import AddSVG from "public/add.svg";
+import Event from "../components/Event";
+import Message from "../components/Message";
+import Modal from "../components/Modal";
+import Navbar from "../components/Navbar";
+import Progress from "../components/Progress";
+
+import { useEvents } from "../hooks/useEvents";
+// import { useMessages } from "../hooks/useMessages";
 
 const Home: NextPage = () => {
+  const [modalActive, setModalActive] = useState(false);
+
+  const { events: _events, loading } = useEvents();
+  const [events, setEvents] = useState(_events);
+
+  // const { messages: _messages, loading: loading2 } = useMessages();
+  // const [messages, setMessages] = useState(_messages);
+
   const todaysDate = () => {
     const today = new Date();
     const month = today.toLocaleString("default", { month: "long" });
@@ -15,12 +29,21 @@ const Home: NextPage = () => {
     return date;
   };
 
+  const handleOnAdd = () => {
+    setModalActive(true);
+  };
+
+  const handleOnModalClose = () => {
+    setModalActive(false);
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center py-2">
       <Head>
         <title>TimeLockr</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
+      <Modal active={modalActive} handleOnClose={handleOnModalClose} />
       <main className="flex w-full flex-1 flex-col items-center p-20">
         <Navbar />
 
@@ -30,14 +53,21 @@ const Home: NextPage = () => {
             <h2 className="text-gray-400 text-lg ">{todaysDate()}</h2>
           </div>
           <div className="flex flex-nowrap space-x-5 overflow-hidden overflow-x-scroll">
-            <figure className="flex-none flex flex-col p-5 rounded items-center space-y-5 justify-center w-[350px] h-[250px] bg-custom-teal">
+            <figure
+              onClick={handleOnAdd}
+              className="flex-none flex flex-col p-5 rounded items-center space-y-5 justify-center w-[350px] h-[250px] bg-custom-teal"
+            >
               <AddSVG className="" />
-              <h3 className="bg-custom-teal/80 font-bold text-lg">Add Message</h3>
+              <h3 className="bg-custom-teal/80 font-bold text-lg">
+                Add Message
+              </h3>
             </figure>
             {Array(6)
               .fill(0)
               .map((_, i) => (
                 <Message
+                  key={i}
+                  messageId="0x1234567890"
                   message="This is a test message"
                   timestamp={167149355 + i}
                 />
@@ -95,8 +125,8 @@ const Home: NextPage = () => {
 
       <footer className="flex h-24 w-full items-center justify-center border-t">
         <a
-          className="flex items-center text-white justify-center gap-2"
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
+          className="flex items-center font-bold text-white justify-center gap-2"
+          href="https://github.com/ConceptCodes/TimeLockr-dApp"
           target="_blank"
           rel="noopener noreferrer"
         >
