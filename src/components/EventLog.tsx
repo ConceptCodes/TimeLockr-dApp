@@ -14,7 +14,7 @@ import { useEvents } from "@/hooks/useEvents";
 const Loading = () => {
   return (
     <div className="flex flex-col w-full space-y-5 overflow-y-auto">
-      {new Array(10).fill(0).map((_, i) => (
+      {new Array(5).fill(0).map((_, i) => (
         <Event isLoading event={null} key={i} />
       ))}
     </div>
