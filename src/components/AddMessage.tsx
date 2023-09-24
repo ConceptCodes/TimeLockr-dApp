@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { polyToUsd } from "@/lib";
 
 const AddMessage = () => {
   const address = useAddress();
@@ -153,7 +154,12 @@ const AddMessage = () => {
                 name="fee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fee</FormLabel>
+                    <FormLabel>
+                      Fee{" "}
+                      <span className="text-primary font-medium">
+                        (${polyToUsd(field.value)})
+                      </span>
+                    </FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -170,7 +176,7 @@ const AddMessage = () => {
                   <FormLabel>Message</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Hello from the other side..."
+                      placeholder="Your message"
                       {...field}
                     />
                   </FormControl>
@@ -182,9 +188,7 @@ const AddMessage = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={!form.formState.isValid}>
-              Submit
-            </Button>
+            <Button type="submit">Submit</Button>
           </form>
         </Form>
       </DialogContent>
