@@ -73,15 +73,11 @@ const CountDown = (props: ICountDownProps) => {
     <Card className="flex p-4 my-5">
       <div className="flex-col w-full items-center justify-center">
         <CardContent>
-          {props.isLoading ? (
-            <Skeleton className="w-48 h-4" />
-          ) : (
-            <Progress
-              max={props.timestamp}
-              value={timeLeftPercentage}
-              className="rounded-none h-4 w-full"
-            />
-          )}
+          <Progress
+            max={props.timestamp}
+            value={timeLeftPercentage}
+            className="rounded-none h-4 w-full"
+          />
         </CardContent>
         <CardFooter className="flex justify-between pb-0">
           <div className="flex space-x-3 text-sm">

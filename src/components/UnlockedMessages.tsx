@@ -20,7 +20,7 @@ const UnlockedMessages = () => {
   return (
     <section className="flex flex-col w-full py-20 space-y-5">
       <h1 className="text-8xl text-left  font-bold">Messages</h1>
-      <div className="flex w-full">
+      <div className="flex w-full flex-row-reverse">
         <h2 className="text-muted-foreground text-lg ">
           {format(new Date(), "MMMM yyyy")}
         </h2>
