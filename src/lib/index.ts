@@ -78,8 +78,9 @@ export function decryptMessage(
  * converts poly to usd
  * @param amt {number} amount of poly
  */
-export function polyToUsd(amt: number): number {
-  return amt * 0.01;
+export function polyToUsd(amt: number): string {
+  // TODO: get this from an oracle or third party api
+  return Number(amt * 0.520871).toFixed(2);
 }
 
 /**
