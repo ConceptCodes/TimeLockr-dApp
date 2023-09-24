@@ -1,38 +1,57 @@
-import NotepadSVG from 'public/notepad.svg';
-import { FC } from 'react';
+import { format } from "date-fns";
+import { FC } from "react";
+import { ChatBubbleIcon } from "@radix-ui/react-icons";
+
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+import { cn } from "@/lib/utils";
+import { Skeleton } from "./ui/skeleton";
 
 interface IMessageProps {
   messageId: string;
   message: string;
   timestamp: number;
   color: string;
+  isLoading?: boolean;
 }
 
 const Message: FC<IMessageProps> = (props: IMessageProps) => {
-  const cleanTimestamp = () => {
-    const date = new Date(props.timestamp);
-    const month = date.toLocaleString("default", { month: "short" });
-    const year = date.getFullYear();
-    const day = date.getDate();
-    const cleanDate = `${month} ${day}`;
-    return cleanDate;
-  };
-
   return (
-    <figure
-      className={[
-        "flex flex-none flex-col p-5 rounded justify-evenly w-[350px] h-[250px]",
-        "bg-" + props.color,
-      ].join(" ")}
-    >
-      <div className="flex flex-row items-center justify-between">
-        <NotepadSVG className="" />
-        <h3 className="text-black font-bold">{cleanTimestamp()}</h3>
-      </div>
-      <p className="text-xl truncate">"{props.message}"</p>
-      <hr className="border-b-2 border-black" />
-      <p className="text-black font-bold">Message Id: {props.messageId}</p>
-    </figure>
+    <Card className={cn(`border-${props.color}`, "p-5 border-4")}>
+      <CardHeader>
+        <div className="flex flex-row justify-between">
+          <ChatBubbleIcon className={cn(`text-${props.color}`, "w-5 h-5")} />
+          <h3 className="text-muted-foreground font-bold">
+            {props.isLoading ? (
+              <Skeleton className="w-12 h-4" />
+            ) : (
+              format(new Date(props.timestamp * 1000), "MM/dd/yyyy")
+            )}
+          </h3>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <CardTitle className="text-xl truncate w-max-[300px]">
+          {props.isLoading ? <Skeleton className="w-48 h-4" /> : props.message}
+        </CardTitle>
+      </CardContent>
+      <CardFooter className="font-bold text-xs flex w-full">
+        Message Id:{" "}
+        <span className="text-muted-foreground ml-2">
+          {props.isLoading ? (
+            <Skeleton className="w-12 h-4" />
+          ) : (
+            props.messageId
+          )}
+        </span>
+      </CardFooter>
+    </Card>
   );
 };
 

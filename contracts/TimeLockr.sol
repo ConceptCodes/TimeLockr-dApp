@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title TimeLockr
- * @author conceptcodes.eth x John Hillert
+ * @author conceptcodes.eth
  * @notice A simple smart contract to store & lock up encrypted messages on-chain.
  * @notice For this service you pay a small fee in the native token.
  * @dev The message is encrypted with the recipient's public key from the dApp.
@@ -19,27 +19,25 @@ contract TimeLockr is Ownable {
      *      But we add them here incase you want to use the contract directly.
      */
 
-    /// @dev Emitted when the fee is too low.
-    error InsufficientFunds(uint256 fee, uint256 timestamp);
-
-    /// @dev Emitted if the message is empty.
+    error InsufficientFunds(uint256 fee, uint256 amt, uint256 timestamp);
     error EmptyMessage(address user, uint256 timestamp);
-
-    /// @dev Emitted if you try to unlock a message that is still locked.
     error MessageStillLocked(bytes32 messageId, uint256 timestamp);
-
-    /// @dev Emitted if you try to unlock a message that doesn't exist.
     error MessageNotFound(bytes32 messageId, uint256 timestamp);
+    error UnauthorizedAccess(
+        uint256 timestamp,
+        address user,
+        bytes32 messageId
+    );
 
     uint256 public FEE = .5 ether;
     uint256 public MIN_LOCK_TIME_IN_SECONDS = 60;
 
-    /// @notice Whitelisted addresses that don't need to pay the fee.
     mapping(address => bool) public whitelist;
 
     struct Message {
         string encryptedMessage;
         uint256 timeLocked;
+        address recipient;
     }
 
     /**
@@ -112,45 +110,61 @@ contract TimeLockr is Ownable {
     constructor() {}
 
     /**
-     * @notice Lock up a message.
      * @notice
-     * - < 1 day = .5 Native Token
-     * - > 1 day = .5 Native Token + (.25 Native Token * days locked)
+     *  - time < 1 day = .5 Native Token
+     *  - time > 1 day = .5 Native Token + (.25 Native Token * (time / days))
+     */
+    function calculateRequiredFee(
+        uint256 _timeLocked,
+        bool _whitelisted
+    ) internal view returns (uint256) {
+        uint256 fee = FEE;
+        if (!_whitelisted && msg.sender != owner()) {
+            fee += (_timeLocked > 1 days)
+                ? (_timeLocked >> 1 days) * 0.25 ether
+                : 0;
+        }
+        return fee;
+    }
+
+    /**
+     * @notice Lock up a message.
      * @dev The message is encrypted with recipients public key from the dApp.
      * @dev We go through our validaitons and then store the message.
-     * @param _user The address of the user.
+     * @param _recipient The address of the user.
      * @param _message The encrypted message.
      * @param _timeLocked The time the message should be locked for.
      */
     function lockMessage(
-        address _user,
+        address _recipient,
         string calldata _message,
         uint256 _timeLocked
     ) public payable {
-        require(_user != address(0));
+        require(_recipient != address(0), "Invalid user address");
+        require(
+            _recipient != address(this),
+            "Recipient address cannot be the contract address"
+        );
+
         bool whitelisted = whitelist[msg.sender];
-        if (!whitelisted && msg.sender != owner()) {
-            if (_timeLocked > 1 days) {
-                if (msg.value < FEE + ((_timeLocked / 1 days) * .25 ether)) {
-                    revert InsufficientFunds(msg.value, block.timestamp);
-                }
-            } else {
-                if (msg.value < FEE) {
-                    revert InsufficientFunds(msg.value, block.timestamp);
-                }
-            }
+        uint256 requiredFee = calculateRequiredFee(_timeLocked, whitelisted);
+        if (msg.value < requiredFee) {
+            revert InsufficientFunds(requiredFee, msg.value, block.timestamp);
         }
         if (bytes(_message).length == 0) {
-            revert EmptyMessage(_user, block.timestamp);
+            revert EmptyMessage(_recipient, block.timestamp);
         }
+
         bytes32 messageId = keccak256(
-            abi.encodePacked(_user, block.timestamp, _message)
+            abi.encodePacked(_recipient, msg.sender, block.timestamp, _message)
         );
-        vault[_user][messageId] = Message({
+
+        vault[_recipient][messageId] = Message({
             encryptedMessage: _message,
-            timeLocked: block.timestamp + _timeLocked
+            timeLocked: block.timestamp + _timeLocked,
+            recipient: _recipient
         });
-        emit MessageLocked(_user, messageId, block.timestamp);
+        emit MessageLocked(_recipient, messageId, block.timestamp);
     }
 
     /**
@@ -160,71 +174,17 @@ contract TimeLockr is Ownable {
      */
     function unlockMessage(bytes32 _messageId) public {
         Message memory message = vault[msg.sender][_messageId];
-        if (message.timeLocked == 0) {
-            revert MessageNotFound(_messageId, block.timestamp);
-        }
-        if (block.timestamp >= message.timeLocked) {
-            emit MessageUnlocked(msg.sender, block.timestamp);
-            messages[msg.sender].push(_messageId);
-        } else {
+        if (message.timeLocked > block.timestamp) {
             revert MessageStillLocked(_messageId, block.timestamp);
         }
+        if (msg.sender != message.recipient) {
+            revert UnauthorizedAccess(block.timestamp, msg.sender, _messageId);
+        }
+        emit MessageUnlocked(msg.sender, block.timestamp);
+        messages[msg.sender].push(_messageId);
     }
 
-    /**
-     * @notice Get all unlocked messages and messageIds for a user.
-     * @return unlockedMessages An array of unlocked messages.
-     */
-    function getAllUnlockedMessages()
-        public
-        view
-        returns (bytes32[] memory, string[] memory)
-    {
-        bytes32[] memory unlockedMessages = new bytes32[](
-            messages[msg.sender].length
-        );
-        string[] memory unlockedMessagesData = new string[](
-            messages[msg.sender].length
-        );
-        uint256 numUnlockedMessages = 0;
-        for (uint256 i = 0; i < messages[msg.sender].length; i++) {
-            bytes32 messageId = messages[msg.sender][i];
-            Message memory message = vault[msg.sender][messageId];
-            if (block.timestamp >= message.timeLocked) {
-                unlockedMessages[numUnlockedMessages] = messageId;
-                unlockedMessagesData[numUnlockedMessages] = message
-                    .encryptedMessage;
-                numUnlockedMessages++;
-            }
-        }
-        bytes32[] memory result = new bytes32[](numUnlockedMessages);
-        string[] memory resultData = new string[](numUnlockedMessages);
-        for (uint256 i = 0; i < numUnlockedMessages; i++) {
-            result[i] = unlockedMessages[i];
-            resultData[i] = unlockedMessagesData[i];
-        }
-        return (result, resultData);
-    }
-
-    function getLockedMessages() public view returns (bytes32[] memory) {
-        bytes32[] memory lockedMessages = new bytes32[](
-            messages[msg.sender].length
-        );
-        uint256 numLockedMessages = 0;
-        for (uint256 i = 0; i < messages[msg.sender].length; i++) {
-            bytes32 messageId = messages[msg.sender][i];
-            Message memory message = vault[msg.sender][messageId];
-            if (block.timestamp < message.timeLocked) {
-                lockedMessages[numLockedMessages] = messageId;
-                numLockedMessages++;
-            }
-        }
-        bytes32[] memory result = new bytes32[](numLockedMessages);
-        for (uint256 i = 0; i < numLockedMessages; i++) {
-            result[i] = lockedMessages[i];
-        }
-        return result;
-    }
+    // -------------------- Admin Functions -------------------- //
 
     /**
      * @notice Update the fee.
