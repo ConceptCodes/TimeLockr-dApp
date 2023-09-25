@@ -1,3 +1,5 @@
+"use client";
+
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -5,11 +7,21 @@ import {
   LockClosedIcon,
   PlusCircledIcon,
   CalendarIcon,
+  LapTimerIcon,
+  ExclamationTriangleIcon,
 } from "@radix-ui/react-icons";
-import { useAddress } from "@thirdweb-dev/react";
-import { format, addMinutes } from "date-fns";
-import { useEffect } from "react";
+import { SmartContract, Web3Button } from "@thirdweb-dev/react";
+import {
+  format,
+  addDays,
+  differenceInSeconds,
+  differenceInDays,
+} from "date-fns";
+import { useEffect, useState } from "react";
+import { BaseContract } from "ethers";
+// import { JSEncrypt } from "jsencrypt";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +40,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
@@ -36,19 +48,25 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
+
+import { cn, formatAddress } from "@/lib";
 import { polyToUsd } from "@/lib";
+import { env } from "@/env.mjs";
+import useThirdWeb from "@/hooks/useThirdWeb";
 
 const AddMessage = () => {
-  const address = useAddress();
+  const [isError, setIsError] = useState(false);
+  const { contract, fee, address } = useThirdWeb();
+  const { toast } = useToast();
 
   const formSchema = z.object({
     recipient: z.string().min(1, "Recipient is required"),
-    message: z.string().min(10, "Message is required"),
+    message: z.string().min(10, "Message must be at least 10 characters"),
     lockUpTime: z
       .date()
-      .min(addMinutes(new Date(), 1), "Lock up time must be in the future"),
-    fee: z.number(),
+      .min(addDays(new Date(), 1), "Lock up time must be in the future"),
+    fee: z.coerce.number().min(fee, "Fee must be greater than 0").nonnegative(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -56,18 +74,37 @@ const AddMessage = () => {
     defaultValues: {
       recipient: address,
       message: "",
-      lockUpTime: addMinutes(new Date(), 4),
-      fee: 6,
+      lockUpTime: addDays(new Date(), 3),
+      fee: fee || 0,
     },
   });
 
   useEffect(() => {
     if (!!address && !form.getValues("recipient"))
       form.setValue("recipient", address);
-  }, [address]);
+  }, [address, contract]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+  async function onSubmit(
+    values: z.infer<typeof formSchema>,
+    contract: SmartContract<BaseContract>
+  ) {
+    try {
+      setIsError(false);
+      // const encrypt = new JSEncrypt();
+      // encrypt.setPublicKey(values.recipient);
+      // const encrypted = encrypt.encrypt(values.message);
+      const data = [
+        values.recipient,
+        // encrypted,
+        values.message,
+        differenceInSeconds(values.lockUpTime, new Date()),
+      ];
+      console.log("Making call with values", data);
+      await contract?.call("lockMessage", data);
+    } catch (error) {
+      setIsError(true);
+      throw error;
+    }
   }
 
   return (
@@ -87,8 +124,17 @@ const AddMessage = () => {
             Lock up a new message
           </DialogTitle>
         </DialogHeader>
+        {/* {isError && (
+          <Alert variant="destructive" className="mt-4">
+            <ExclamationTriangleIcon className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              There was an error locking your message. Please try again later.
+            </AlertDescription>
+          </Alert>
+        )} */}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <div className="space-y-8">
             <FormField
               control={form.control}
               name="recipient"
@@ -140,7 +186,7 @@ const AddMessage = () => {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < addMinutes(new Date(), 1)}
+                          disabled={(date) => date < addDays(new Date(), -1)}
                           initialFocus
                         />
                       </PopoverContent>
@@ -163,6 +209,12 @@ const AddMessage = () => {
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
+                    <FormDescription>
+                      Base fee is{" "}
+                      <span className="text-primary font-bold">
+                        {fee} POLY.
+                      </span>
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -175,10 +227,7 @@ const AddMessage = () => {
                 <FormItem>
                   <FormLabel>Message</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Your message"
-                      {...field}
-                    />
+                    <Textarea placeholder="Your message" {...field} />
                   </FormControl>
                   <FormDescription>
                     This is the message that will be locked up and only
@@ -188,8 +237,53 @@ const AddMessage = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit">Submit</Button>
-          </form>
+            <Web3Button
+              className={cn(
+                buttonVariants({
+                  variant: "default",
+                })
+              )}
+              overrides={{
+                value: form.getValues("fee") * 10 ** 18,
+              }}
+              contractAddress={env.NEXT_PUBLIC_CONTRACT_ADDRESS}
+              action={async (contract) => {
+                await onSubmit(form.getValues(), contract);
+              }}
+              onSuccess={(result) => {
+                console.log(result);
+                form.reset();
+                toast({
+                  title: "Message Locked",
+                  description: (
+                    <p>
+                      Your message has been locked and will be available to{" "}
+                      <span className="text-primary font-bold">
+                        {formatAddress(form.getValues("recipient"))}
+                      </span>{" "}
+                      in approximately{" "}
+                      {differenceInDays(
+                        form.getValues("lockUpTime"),
+                        new Date()
+                      )}{" "}
+                      days.
+                    </p>
+                  ),
+                });
+              }}
+              onError={(error) => {
+                toast({
+                  title: "Error",
+                  description:
+                    error.name ||
+                    "There was an error locking your message. Please try again later.",
+                  variant: "destructive",
+                });
+              }}
+            >
+              Lock Message
+            </Web3Button>
+          </div>
         </Form>
       </DialogContent>
     </Dialog>

@@ -10,16 +10,15 @@ import {
   phantomWallet,
   ChainId,
 } from "@thirdweb-dev/react";
-import { ToastContainer } from "react-toastify";
+
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "@/components/ui/toaster";
 
 import { env } from "@/env.mjs";
 
 import "../styles/globals.css";
-import "react-toastify/dist/ReactToastify.css";
-import { ThemeProvider } from "@/components/ThemeProvider";
 
-const chainId =
-  env.NEXT_PUBLIC_NODE_ENV !== "production" ? ChainId.Mumbai : ChainId.Polygon;
+const chainId = ChainId.Polygon;
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
@@ -30,8 +29,8 @@ function MyApp({ Component, pageProps }: AppProps) {
       disableTransitionOnChange
     >
       <ThirdwebProvider
-        activeChain={chainId}
-        clientId="YOUR_CLIENT_ID"
+        activeChain="polygon"
+        clientId={env.NEXT_PUBLIC_THIRD_WEB_CLIENT_ID}
         supportedWallets={[
           metamaskWallet(),
           coinbaseWallet(),
@@ -45,7 +44,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         <main className="bg-background">
           <Component {...pageProps} />
         </main>
-        <ToastContainer />
+        <Toaster />
       </ThirdwebProvider>
     </ThemeProvider>
   );

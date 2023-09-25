@@ -1,5 +1,5 @@
 import Countdown from "react-countdown";
-import { StopwatchIcon } from "@radix-ui/react-icons";
+import { ChatBubbleIcon, StopwatchIcon } from "@radix-ui/react-icons";
 
 import { Progress } from "./ui/progress";
 import { Card, CardContent, CardFooter } from "./ui/card";
@@ -111,22 +111,23 @@ const CountDown = (props: ICountDownProps) => {
 };
 
 const LockedMessages = () => {
-  const { isLoading, lockedMessages } = useMessages();
+  const { loading, lockedMessages } = useMessages();
 
   return (
     <div className="flex flex-col w-full xl:w-1/2 space-y-5">
       <h1 className="text-4xl text-left font-bold">Progress</h1>
       <ScrollArea className="h-[500px] flex flex-col w-full">
-        {isLoading ? (
-          new Array(5).fill(0).map((_, i) => <CountDown key={i} isLoading />)
+        {loading ? (
+          new Array(5)
+            .fill(0)
+            .map((_, i) => <CountDown key={i} isLoading={loading} />)
         ) : lockedMessages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <h1 className="text-4xl text-center font-bold">
-              No Locked Messages
-            </h1>
-            <h3 className="text-xl text-center font-bold text-muted-foreground">
-              Send a message to get started
-            </h3>
+          <div className="flex h-[300px] w-full flex-col items-center justify-center gap-4 rounded-lg border border-dashed">
+            <ChatBubbleIcon className="h-16 w-16 text-muted-foreground/60 dark:text-muted" />
+            <h2 className="text-xl font-bold">No Messages</h2>
+            <p className="max-w-sm text-center text-base text-muted-foreground">
+              No messages were found. Try adding a new message.
+            </p>
           </div>
         ) : (
           lockedMessages.map((message) => (

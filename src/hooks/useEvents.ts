@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { useSDK } from "@thirdweb-dev/react";
+import { useContract } from "@thirdweb-dev/react";
+import { env } from "@/env.mjs";
+import useThirdWeb from "./useThirdWeb";
 
 export interface IEvent {
   _user?: string;
@@ -9,25 +11,24 @@ export interface IEvent {
   _prevLockTime?: number;
   _lockTime?: number;
   _timestamp?: number;
+  newOwner?: string;
+  previousOwner?: string;
   type:
     | "MessageLocked"
     | "MessageUnlocked"
     | "FeeUpdated"
     | "MinimumLockUpTimeUpdated"
     | "AddedToWhitelist"
+    | "OwnershipTransferred"
     | "RemovedFromWhitelist";
 }
 
 export function useEvents() {
   const [events, setEvents] = useState<IEvent[]>();
-
-  const sdk = useSDK();
+  const { contract, loading } = useThirdWeb();
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const contract = await sdk?.getContract(
-        process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string
-      );
       const _events = await contract?.events.getAllEvents();
       const clean = _events?.map((event) => {
         return {
@@ -39,7 +40,7 @@ export function useEvents() {
       setEvents(clean);
     };
     fetchEvents();
-  }, [sdk]);
+  }, [contract]);
 
-  return { events };
+  return { events, loading };
 }

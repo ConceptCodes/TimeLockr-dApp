@@ -29,6 +29,6 @@
     "**/*.cjs",
     "**/*.mjs",
     "src/components/placeholder."
-  ],
+, "hardhat.config.js"  ],
   "exclude": ["node_modules"]
 }

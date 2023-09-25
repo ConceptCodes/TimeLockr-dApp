@@ -1,3 +1,8 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { CrossCircledIcon, EyeNoneIcon } from "@radix-ui/react-icons";
+
 import Event from "./Event";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
@@ -10,7 +15,6 @@ import {
 } from "@/components/ui/select";
 
 import { useEvents } from "@/hooks/useEvents";
-import { useState } from "react";
 
 const Loading = () => {
   return (
@@ -23,13 +27,17 @@ const Loading = () => {
 };
 
 const EventLog = () => {
-  const { events } = useEvents();
-  const [filter, setFilter] = useState<string>("");
+  const { events, loading } = useEvents();
+  const [filter, setFilter] = useState<string>();
 
-  const filteredEvents = () => {
+  const Items = useMemo(() => {
     if (!events) return [];
-    if (filter === "") return events;
-    return events.filter((event) => event.type === filter);
+    if (!filter) return events;
+    return events?.filter((event) => event.type === filter);
+  }, [events, filter]);
+
+  const handleReset = () => {
+    setFilter(undefined);
   };
 
   return (
@@ -37,9 +45,17 @@ const EventLog = () => {
       <div className="flex flex-row justify-between">
         <h1 className="text-4xl text-left font-bold">Events</h1>
         <Select onValueChange={setFilter} value={filter}>
-          <SelectTrigger className="max-w-[250px]">
-            <SelectValue placeholder="Filter"></SelectValue>
-          </SelectTrigger>
+          <div className="flex space-x-2 items-center">
+            <SelectTrigger className="max-w-[250px]">
+              <SelectValue placeholder="Filter"></SelectValue>
+            </SelectTrigger>
+            {!!filter && (
+              <CrossCircledIcon
+                onClick={handleReset}
+                className="h-5 w-5 text-muted-foreground"
+              />
+            )}
+          </div>
           <SelectContent>
             <SelectGroup>
               <SelectItem value="MessageLocked">Message Locked</SelectItem>
@@ -53,10 +69,19 @@ const EventLog = () => {
         </Select>
       </div>
       <ScrollArea className="h-[500px] flex flex-col w-full space-y-5">
-        {events ? (
-          filteredEvents().map((event, i) => <Event key={i} event={event} />)
+        {loading && <Loading />}
+        {Items?.length === 0 ? (
+          <div className="flex h-[300px] w-full flex-col items-center justify-center gap-4 rounded-lg border border-dashed">
+            <EyeNoneIcon className="h-16 w-16 text-muted-foreground/60 dark:text-muted" />
+            <h2 className="text-xl font-bold">No Event Logs Found </h2>
+            <p className="max-w-sm text-center text-base text-muted-foreground">
+              No event logs were found. Try changing the filter or adding a new
+              message. If you are using a testnet, make sure you are connected
+              to the correct network.
+            </p>
+          </div>
         ) : (
-          <Loading />
+          Items.map((event, i) => <Event key={i} event={event} />)
         )}
         <ScrollBar orientation="vertical" />
       </ScrollArea>

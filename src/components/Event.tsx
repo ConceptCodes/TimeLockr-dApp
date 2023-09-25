@@ -1,5 +1,12 @@
 import { FC } from "react";
-import { LapTimerIcon } from "@radix-ui/react-icons";
+import {
+  LapTimerIcon,
+  LockOpen2Icon,
+  MagicWandIcon,
+  MixerVerticalIcon,
+  PersonIcon,
+  StopwatchIcon,
+} from "@radix-ui/react-icons";
 import { format } from "date-fns";
 
 import ArrowSVG from "public/arrow.svg";
@@ -11,6 +18,7 @@ import { Card } from "@/components/ui/card";
 
 import { IEvent } from "@/hooks/useEvents";
 import { formatAddress } from "@/lib";
+import { cn } from "@/lib";
 
 interface IEventProps {
   event: IEvent | null;
@@ -22,30 +30,39 @@ const Event: FC<IEventProps> = (props: IEventProps) => {
     return props.event?.type?.split(/(?=[A-Z])/)?.join(" ");
   };
 
+  const iconStyle = (color: string) =>
+    `w-10 h-10 rounded-md items-center flex justify-center border-${color}-500/50 border-2`;
+
   const getIcon = () => {
     switch (props.event?.type) {
       case "MessageUnlocked":
         return (
-          <figure className="w-14 h-14 rounded-md items-center flex justify-center bg-teal-500">
-            <UnlockSVG />
+          <figure className={cn(iconStyle("teal"))}>
+            <LockOpen2Icon className="h-10 " />
           </figure>
         );
       case "MessageLocked":
         return (
-          <figure className="w-4 h-14 rounded-md items-center flex justify-center bg-purple-500">
-            <LockSVG className="fill-black h-10" />
+          <figure className={cn(iconStyle("purple"))}>
+            <StopwatchIcon className="h-10 " />
           </figure>
         );
       case "FeeUpdated":
         return (
-          <figure className="bg-green-500 w-4 h-14 rounded-md items-center flex justify-center">
-            <FeeSVG />
+          <figure className={cn(iconStyle("orange"))}>
+            <MixerVerticalIcon className="h-10 " />
           </figure>
         );
       case "MinimumLockUpTimeUpdated":
         return (
-          <figure className="bg-blue-500 w-4 h-14 rounded-md items-center flex justify-center">
-            <LockSVG className=" fill-black h-10" />
+          <figure className={cn(iconStyle("yellow"))}>
+            <MagicWandIcon className="h-10 " />
+          </figure>
+        );
+      case "OwnershipTransferred":
+        return (
+          <figure className={cn(iconStyle("blue"))}>
+            <PersonIcon className="h-10 " />
           </figure>
         );
       default:
@@ -74,33 +91,39 @@ const Event: FC<IEventProps> = (props: IEventProps) => {
           )}
         </h3>
         {props.event?.type === "MessageUnlocked" && (
-          <p className="text-gray-300">
+          <p className="text-muted-foreground">
             <span className="text-teal-500 font-bold pr-2">User:</span>
             {formatAddress(props.event._user)}
           </p>
         )}
         {props.event?.type === "MessageLocked" && (
-          <p className="text-gray-300">
+          <p className="text-muted-foreground">
             <span className="text-purple-500 font-bold pr-2">Message Id:</span>
             {formatAddress(props.event._messageId)}
           </p>
         )}
         {props.event?.type === "FeeUpdated" && (
-          <div className="flex items-center text-gray-300">
+          <div className="flex items-center text-muted-foreground">
             {props.event._oldFee}
             <ArrowSVG className="fill-green-500 mx-3" />
             {props.event._fee}
           </div>
         )}
         {props.event?.type === "MinimumLockUpTimeUpdated" && (
-          <div className="flex items-center text-gray-300">
+          <div className="flex items-center text-muted-foreground">
             {props.event._prevLockTime} Mins
             <ArrowSVG className="mx-3 fill-blue-500" />
             {props.event._lockTime} Mins
           </div>
         )}
+        {props.event?.type === "OwnershipTransferred" && (
+          <p className="text-muted-foreground">
+            <span className="text-blue-500 font-bold pr-2">New Owner:</span>
+            {formatAddress(props.event.newOwner)}
+          </p>
+        )}
         {props.isLoading && (
-          <p className="text-gray-300 flex items-center text-xs">
+          <p className="flex items-center text-xs">
             <span className="text-muted-foreground font-bold pr-2">
               Message Id:
             </span>

@@ -1,21 +1,13 @@
 import { format } from "date-fns";
+import { ChatBubbleIcon } from "@radix-ui/react-icons";
+
 import AddMessage from "./AddMessage";
 import Message from "./Message";
+
 import { useMessages } from "@/hooks/useMessages";
 
 const UnlockedMessages = () => {
-  const getColor = (index: number): string => {
-    const opts = [
-      "teal-300",
-      "purple-300",
-      "orange-300",
-      "green-300",
-      "blue-300",
-    ];
-    return opts[index % opts.length] as string;
-  };
-
-  const { isLoading, unlockedMessages } = useMessages();
+  const { loading, unlockedMessages } = useMessages();
 
   return (
     <section className="flex flex-col w-full py-20 space-y-5">
@@ -27,7 +19,7 @@ const UnlockedMessages = () => {
       </div>
       <div className="flex flex-nowrap space-x-5 overflow-hidden overflow-x-scroll">
         <AddMessage />
-        {isLoading &&
+        {loading &&
           new Array(4)
             .fill(0)
             .map((_, i) => (
@@ -36,26 +28,27 @@ const UnlockedMessages = () => {
                 messageId="0x1234567890"
                 message="This is a test message to see how it looks like."
                 timestamp={1681877791 + i * 1000}
-                color={getColor(i)}
-                isLoading={isLoading}
+                index={i}
+                isLoading={loading}
               />
             ))}
-        {unlockedMessages.length === 0 && !isLoading && (
-          <div className="flex flex-col items-center justify-center w-full h-full">
-            <h1 className="text-4xl font-bold text-center">No messages yet</h1>
-            <h2 className="text-xl text-center">
-              Start by adding a new message
-            </h2>
+        {unlockedMessages.length === 0 && !loading && (
+          <div className="flex h-[300px] w-full flex-col items-center justify-center gap-4 rounded-lg border border-dashed">
+            <ChatBubbleIcon className="h-16 w-16 text-muted-foreground/60 dark:text-muted" />
+            <h2 className="text-xl font-bold">No Messages</h2>
+            <p className="max-w-sm text-center text-base text-muted-foreground">
+              No messages were found. Try adding a new message.
+            </p>
           </div>
         )}
-        {unlockedMessages.map((_, i) => (
+        {unlockedMessages.map((msg, i) => (
           <Message
             key={i}
-            messageId="0x1234567890"
-            message="This is a test message to see how it looks like."
-            timestamp={1681877791 + i * 1000}
-            color={getColor(i)}
-            isLoading={isLoading}
+            messageId={msg._messageId}
+            message={msg._user}
+            timestamp={msg._timestamp}
+            index={i}
+            isLoading={loading}
           />
         ))}
       </div>

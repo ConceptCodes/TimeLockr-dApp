@@ -1,6 +1,7 @@
 import { useSDK } from "@thirdweb-dev/react";
 import { useAddress } from "@thirdweb-dev/react";
 import { useEffect, useState } from "react";
+import useThirdWeb from "./useThirdWeb";
 
 interface IMessage {
   _messageId: string;
@@ -14,39 +15,42 @@ interface IMessage {
 export function useMessages() {
   const [lockedMessages, setLockedMessages] = useState<IMessage[]>([]);
   const [unlockedMessages, setUnlockedMessages] = useState<IMessage[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const address = useAddress();
-  const sdk = useSDK();
+  const { contract, loading } = useThirdWeb();
 
   useEffect(() => {
-    // const fetchMessages = async () => {
-    //   const contract = await sdk?.getContract(
-    //     process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string
-    //   );
-    //   const _events = await contract?.events.getAllEvents();
-    //   const clean = _events
-    //     ?.filter((event) => {
-    //       (event.eventName === "MessageLocked" ||
-    //         event.eventName === "MessageUnlocked") &&
-    //         event.data._user === address;
-    //     })
-    //     .map((event) => {
-    //       return {
-    //         ...event.data,
-    //         _timestamp: event?.data?._timestamp,
-    //         type: event.eventName,
-    //       } as IMessage;
-    //     });
-    //   setLockedMessages(
-    //     clean?.filter((message) => message.type === "MessageLocked")
-    //   );
-    //   setUnlockedMessages(
-    //     clean?.filter((message) => message.type === "MessageUnlocked")
-    //   );
-    //   setIsLoading(false);
-    // };
-    // fetchMessages();
-  }, [sdk, address]);
+    const fetchMessages = async () => {
+      const _events = await contract?.events.getAllEvents();
+      const clean = _events
+        ?.filter((event) => {
+          return (
+            (event.eventName === "MessageLocked" ||
+              event.eventName === "MessageUnlocked") &&
+            event.data._user === address
+          );
+        })
+        .map((event) => {
+          return {
+            ...event.data,
+            _timestamp: event?.data?._timestamp,
+            type: event.eventName,
+          } as IMessage;
+        });
+      if (clean) {
+        setLockedMessages((prev) =>
+          prev.concat(
+            clean?.filter((message) => message.type === "MessageLocked")
+          )
+        );
+        setUnlockedMessages((prev) =>
+          prev.concat(
+            clean?.filter((message) => message.type === "MessageUnlocked")
+          )
+        );
+      }
+    };
+    fetchMessages();
+  }, [contract, address]);
 
-  return { lockedMessages, unlockedMessages, isLoading };
+  return { lockedMessages, unlockedMessages, loading };
 }
